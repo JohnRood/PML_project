@@ -1,0 +1,64 @@
+---
+title: "Homebrew_MLE_or_Something"
+author: "John Rood"
+date: "Sunday, October 25, 2015"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
+
+Initialize.
+
+```{r}
+options( warn = -1 )  ## not good if warnings are not suppressed in this script
+pml_ts <- read.csv( "C:/Coursera/Practical_Machine_Learning/work/pml-testing.csv" )
+pml_tr <- read.csv( "C:/Coursera/Practical_Machine_Learning/work/pml-training.csv" )
+bool_numeric_ch_ts <- ( sapply( pml_ts, class )) == "numeric"
+bool_integer_ch_ts <- ( sapply( pml_ts, class )) == "integer"
+bool_number_ch_ts <- bool_numeric_ch_ts | bool_integer_ch_ts
+sml_ts <- pml_ts[ bool_numeric_ch_ts ]
+sml_tr <- pml_tr[ bool_numeric_ch_ts ]
+```
+
+How to solve the 20 problems.  Here is the example of the 17th one.
+
+```{r}
+## Note:  19622 is the number of observations in the training dataset
+good <- rep( 19622, 0 )
+for (i in 1:19622) { good[i] <- sum(abs(sml_tr[i,] - sml_ts[17,])) }
+good2 <- min( good )
+good3 <- which.min( good )
+ans <- pml_tr[good3,160]
+ans
+```
+
+Here are the answers.
+
+```{r}
+ans2 <- rep( "A", 20 )
+filename <- rep( "", 20 )
+for (i in 1:20) {filename[i] <- paste0("C:/Coursera/Practical_Machine_learning/work/10_9/problem_id_", i, ".txt")}
+for (i in 1:20) {ans2[i] <- read.table(filename[i])}
+ans2 <- unlist( ans2 )
+ans2
+#   B A B A A E D B A A B C B A E E A B B B
+```
+
+How to do leave-one-out cross-validation the hard way (one entry at a time, in this case the fifth element).
+
+```{r}
+## Note:  19622 is the number of observations in the training dataset
+good <- rep( 19621, 0 )
+rng <- sample( 1:19622, 1000 )
+seq_1_19622 <- seq( 1:19622 )
+s_not5 <- seq_1_19622[ -rng[5] ]
+sml_tr_not5 <- sml_tr[ s_not5, ]
+for (i in 1:19621) { good[i] <- sum(abs(sml_tr_not5[i,] - sml_tr[rng[5],])) }
+good2 <- min( good )
+good3 <- which.min( good )
+pml_tr[rng[5],160] == pml_tr[good3,160]
+pml_tr[rng[5],160]
+```
+
