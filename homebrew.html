@@ -67,20 +67,35 @@ img {
 </div>
 
 
-<p>This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <a href="http://rmarkdown.rstudio.com" class="uri">http://rmarkdown.rstudio.com</a>.</p>
-<p>When you click the <strong>Knit</strong> button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.</p>
+<div id="summary." class="section level1">
+<h1>Summary.</h1>
+<p>An easy way to get the problems all correct was implemented. In response to comments in the forums, a slightly less easy way was implemented, again getting all the problems correct. A serious attempt was made to somehow derive these methods from R implementations of General Linear Model functionality. However, perhaps surprisingly, this did not succeed. A result of only 8 correct out of 20 was all that could be achieved even with a considerable time investment. This led to the idea of constructing a scheme to cross validate the first two ways of solving the problems (particularly the second way). We use a minimalist version of leave-one-out cross-validation. The results of doing this hint at (very) high accuracy.</p>
+</div>
+<div id="discussion." class="section level1">
+<h1>Discussion.</h1>
+<p>Right. [sarcasm]</p>
+<p>This has been a learning experience. It is likely there will be further investigation. However, at the present moment time does not allow detailed explication of what has been learned.</p>
+<p>Hopefully the comments in the code explain things satisfactorily.</p>
+<p>Question: Is the present method some kind of global Maximum Likelihood Estimation?</p>
+</div>
+<div id="appendix.-r-code." class="section level1">
+<h1>Appendix. R code.</h1>
 <p>Initialize.</p>
 <pre class="r"><code>options( warn = -1 )  ## not good if warnings are not suppressed in this script
 pml_ts &lt;- read.csv( &quot;C:/Coursera/Practical_Machine_Learning/work/pml-testing.csv&quot; )
 pml_tr &lt;- read.csv( &quot;C:/Coursera/Practical_Machine_Learning/work/pml-training.csv&quot; )
+# The present method is based on calculating the sum of absolute differences (SAD).
+# So we isolate the floating and integer columns of the data for our use.
 bool_numeric_ch_ts &lt;- ( sapply( pml_ts, class )) == &quot;numeric&quot;
 bool_integer_ch_ts &lt;- ( sapply( pml_ts, class )) == &quot;integer&quot;
 bool_number_ch_ts &lt;- bool_numeric_ch_ts | bool_integer_ch_ts
+# Make data with shorter rows--only what we need to use.
 sml_ts &lt;- pml_ts[ bool_numeric_ch_ts ]
 sml_tr &lt;- pml_tr[ bool_numeric_ch_ts ]</code></pre>
 <p>How to solve the 20 problems. Here is the example of the 17th one.</p>
 <pre class="r"><code>## Note:  19622 is the number of observations in the training dataset
 good &lt;- rep( 19622, 0 )
+# Minimize the Sum of Absolute Differences.  cf Manhattan distance
 for (i in 1:19622) { good[i] &lt;- sum(abs(sml_tr[i,] - sml_ts[17,])) }
 good2 &lt;- min( good )
 good3 &lt;- which.min( good )
@@ -88,31 +103,51 @@ ans &lt;- pml_tr[good3,160]
 ans</code></pre>
 <pre><code>## [1] A
 ## Levels: A B C D E</code></pre>
-<p>Here are the answers.</p>
-<pre class="r"><code>ans2 &lt;- rep( &quot;A&quot;, 20 )
-filename &lt;- rep( &quot;&quot;, 20 )
-for (i in 1:20) {filename[i] &lt;- paste0(&quot;C:/Coursera/Practical_Machine_learning/work/10_9/problem_id_&quot;, i, &quot;.txt&quot;)}
-for (i in 1:20) {ans2[i] &lt;- read.table(filename[i])}
-ans2 &lt;- unlist( ans2 )
-ans2</code></pre>
-<pre><code>##  [1] B A B A A E D B A A B C B A E E A B B B
-## Levels: B A E D C</code></pre>
-<pre class="r"><code>#   B A B A A E D B A A B C B A E E A B B B</code></pre>
-<p>How to do leave-one-out cross-validation the hard way (one entry at a time, in this case the fifth element).</p>
+<p>Here are the answers. Presumably these are well known by this point in the project.</p>
+<pre class="r"><code>#ans2 &lt;- rep( &quot;A&quot;, 20 )
+#filename &lt;- rep( &quot;&quot;, 20 )
+#for (i in 1:20) {filename[i] &lt;- paste0(&quot;C:/Coursera/Practical_Machine_learning/work/10_9/problem_id_&quot;, i, &quot;.txt&quot;)}
+#for (i in 1:20) {ans2[i] &lt;- read.table(filename[i])}
+#ans2 &lt;- unlist( ans2 )
+#ans2
+#   B A B A A E D B A A B C B A E E A B B B</code></pre>
+<p>How to do leave-one-out cross-validation the hard way (one entry at a time, in this case the randomly generated fifth element to delete).</p>
 <pre class="r"><code>## Note:  19622 is the number of observations in the training dataset
 good &lt;- rep( 19621, 0 )
+# Create a thousand randomly generated integers within the range of our index.
 rng &lt;- sample( 1:19622, 1000 )
 seq_1_19622 &lt;- seq( 1:19622 )
+# Remove the target observation from our training set.
 s_not5 &lt;- seq_1_19622[ -rng[5] ]
 sml_tr_not5 &lt;- sml_tr[ s_not5, ]
+# Minimize the Sum of Absolute Differences.
 for (i in 1:19621) { good[i] &lt;- sum(abs(sml_tr_not5[i,] - sml_tr[rng[5],])) }
 good2 &lt;- min( good )
 good3 &lt;- which.min( good )
+# The following line compares the predicted and actual classe variables.
 pml_tr[rng[5],160] == pml_tr[good3,160]</code></pre>
 <pre><code>## [1] TRUE</code></pre>
 <pre class="r"><code>pml_tr[rng[5],160]</code></pre>
-<pre><code>## [1] B
+<pre><code>## [1] E
 ## Levels: A B C D E</code></pre>
+<p>All of the first five values match.</p>
+<p>Or, doing a batch of 20 at once.</p>
+<pre class="r"><code>good5 &lt;- rep( FALSE, 20 )
+#The following code takes too long to execute for reasonable processing by Knitr.
+#for (j in 1:20) {s_not &lt;- seq_1_19622[ -rng[5+j] ]
+#                 sml_tr_not &lt;- sml_tr[ s_not, ]
+#                 for (i in 1:19621) { good[i] &lt;- sum(abs(sml_tr_not[i,] - sml_tr[rng[5+j],])) }
+#                 good2 &lt;- min( good )
+#                 good3 &lt;- which.min( good )
+#                 good5[j] &lt;- pml_tr[rng[5+j],160] == pml_tr[good3,160]}
+#good5</code></pre>
+<p>The return value here is:</p>
+<p>[1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE</p>
+<p>[20] TRUE</p>
+<p>At this point it is known that this cross-validation gives correct results on 25 (random) cases. Specifically we have 25 values of TRUE for the good5’s, if you will.</p>
+<p>So a crude measure of in sample Accuracy here (on my interpretation) is at least 96%</p>
+<p>In fact, with the small number of calculations done here, there have been no errors either in sample or out-of-sample.</p>
+</div>
 
 
 </div>
